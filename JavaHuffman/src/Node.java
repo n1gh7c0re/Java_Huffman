@@ -1,27 +1,20 @@
-// Класс для узла дерева Хаффмана
-class Node implements Comparable<Node> {
-    char ch;
-    int freq;
-    Node left, right;
+public class Node {
+    public byte name;
+    public int key;
+    public Node left;
+    public Node right;
 
-    Node(char ch, int freq) {
-        this.ch = ch;
-        this.freq = freq;
+    public Node(byte name, int key) {
+        this.name = name;
+        this.key = key;
+        this.left = null;
+        this.right = null;
     }
 
-    Node(int freq, Node left, Node right) {
-        this.ch = '\0';
-        this.freq = freq;
+    public Node(byte name, int key, Node left, Node right) {
+        this.name = name;
+        this.key = key;
         this.left = left;
         this.right = right;
-    }
-
-    public int compareTo(Node other) {
-        return this.freq - other.freq;
-    }
-
-    // Проверка, является ли узел листом
-    public boolean isLeaf() {
-        return (this.left == null) && (this.right == null);
     }
 }

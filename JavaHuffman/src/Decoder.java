@@ -1,43 +1,40 @@
-import java.io.*;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.HashMap;
-import java.util.Map;
 
 public class Decoder {
-    // Метод декодирования файла
-    public void decode(String inputFile, String outputFile) throws IOException, ClassNotFoundException {
-        Map<Character, Integer> freqMap;
-        String encodedText;
+    public void decode(String input, String output) throws IOException {
+        FileInputStream fileIn = new FileInputStream(input);
+        HuffmanHeader head = new HuffmanHeader();
+        if (!head.read(fileIn))
+            return;
 
-        // Чтение закодированных данных из файла
-        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(inputFile))) {
-            freqMap = (Map<Character, Integer>) ois.readObject();
-            encodedText = (String) ois.readObject();
-        }
+        FileOutputStream fileOut = new FileOutputStream(output);
+        HashMap<String, Byte> detable = new HashMap<>();
+        head.table.forEach((key, value) -> detable.put(value, key));
 
-        Node root = HuffmanTree.buildHuffmanTree(freqMap);
-        String decodedText = decodeText(root, encodedText);
+        int count = 0;
+        String key = "";
+        byte[] buffer = new byte[1024];
+        while ((count = fileIn.read(buffer)) != -1) {
+            byte[] result = new byte[8 * buffer.length];
+            int index = 0;
 
-        // Сохранение декодированного текста
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
-            writer.write(decodedText);
-        }
-
-        System.out.println("Файл успешно декодирован и сохранен в " + outputFile);
-    }
-
-
-
-    // Декодирование текста
-    private static String decodeText(Node root, String encodedText) {
-        StringBuilder decodedText = new StringBuilder();
-        Node current = root;
-        for (char bit : encodedText.toCharArray()) {
-            current = (bit == '0') ? current.left : current.right;
-            if (current.isLeaf()) {
-                decodedText.append(current.ch);
-                current = root;
+            for (int i = 0; i < count; i++) {
+                for (int j = 7; j >= 0; --j) {
+                    key += (char) ('0' + ((buffer[i] >> j) & 1));
+                    if (detable.containsKey(key)) {
+                        result[index++] = detable.get(key);
+                        key = "";
+                    }
+                }
             }
+
+            fileOut.write(result, 0, index);
         }
-        return decodedText.toString();
+
+        fileIn.close();
+        fileOut.close();
     }
 }

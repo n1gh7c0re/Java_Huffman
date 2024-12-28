@@ -1,47 +1,68 @@
+import java.util.Stack;
+import java.util.Map.Entry;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.Comparator;
 
-public class HuffmanTree{
-    // Построение карты частот символов
-    public static Map<Character, Integer> buildFrequencyMap(String text) {
-        Map<Character, Integer> freqMap = new HashMap<>();
-        for (char ch : text.toCharArray()) {
-            freqMap.put(ch, freqMap.getOrDefault(ch, 0) + 1);
-        }
-        return freqMap;
+class HuffmanCompare implements Comparator<HuffmanTree> {
+    @Override
+    public int compare(HuffmanTree first, HuffmanTree second) {
+        return first.key() - second.key();
+    }
+}
+
+public class HuffmanTree {
+    private Node root;
+
+    public HuffmanTree(HashMap<Byte, Integer> map) {
+        PriorityQueue<HuffmanTree> heap = new PriorityQueue<>(map.size(), new HuffmanCompare());
+        map.forEach((key, value) -> heap.add(new HuffmanTree(key, value)));
+
+        while (heap.size() > 1)
+            heap.add(heap.poll().merge(heap.poll()));
+
+        this.root = heap.poll().root;
     }
 
-    // Построение дерева Хаффмана
-    public static Node buildHuffmanTree(Map<Character, Integer> freqMap) {
-        PriorityQueue<Node> pq = new PriorityQueue<>();
-        for (Map.Entry<Character, Integer> entry : freqMap.entrySet()) {
-            pq.add(new Node(entry.getKey(), entry.getValue()));
-        }
-
-        while (pq.size() > 1) {
-            Node left = pq.poll();
-            Node right = pq.poll();
-            Node parent = new Node(left.freq + right.freq, left, right);
-            pq.add(parent);
-        }
-
-        return pq.poll();
+    private HuffmanTree(byte name, int key) {
+        root = new Node(name, key);
     }
 
-    // Построение таблицы кодов Хаффмана
-    public static Map<Character, String> buildCodeTable(Node root) {
-        Map<Character, String> codeTable = new HashMap<>();
-        buildCodeHelper(root, "", codeTable);
-        return codeTable;
+    public int key() {
+        return root.key;
     }
 
-    public static void buildCodeHelper(Node node, String code, Map<Character, String> codeTable) {
-        if (!node.isLeaf()) {
-            buildCodeHelper(node.left, code + '0', codeTable);
-            buildCodeHelper(node.right, code + '1', codeTable);
-        } else {
-            codeTable.put(node.ch, code);
+    public HashMap<Byte, String> getTable() {
+        HashMap<Byte, String> table = new HashMap<>();
+        Stack<Entry<Node, String>> st = new Stack<>();
+
+        st.push(new SimpleEntry<Node, String>(this.root,
+                (this.root.left == null && this.root.right == null) ? "1" : ""));
+
+        while (!st.empty()) {
+            Entry<Node, String> top = st.pop();
+            Node node = top.getKey();
+            String value = top.getValue();
+
+            if (node.left == null && node.right == null)
+                table.put(node.name, value);
+
+            if (node.left != null)
+                st.push(new SimpleEntry<Node, String>(node.left, value + "0"));
+
+            if (node.right != null)
+                st.push(new SimpleEntry<Node, String>(node.right, value + "1"));
         }
+
+        return table;
+    }
+
+    private HuffmanTree merge(HuffmanTree other) {
+        this.root = new Node((byte) 0,
+                this.root.key + other.root.key,
+                this.root, other.root);
+
+        return this;
     }
 }

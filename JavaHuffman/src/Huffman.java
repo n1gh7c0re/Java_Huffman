@@ -8,7 +8,7 @@ public class Huffman {
         encoder.encode(input, output);
     }
 
-    public void decode(String input, String output) throws IOException, ClassNotFoundException {
+    public void decode(String input, String output) throws IOException {
         decoder.decode(input, output);
     }
 }

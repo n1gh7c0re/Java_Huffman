@@ -1,38 +1,76 @@
-import java.io.*;
-import java.util.Map;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.HashMap;
 
 public class Encoder {
-    // Метод кодирования файла
-    public void encode(String inputFile, String outputFile) throws IOException {
-        String text = readFile(inputFile);
-        Map<Character, Integer> freqMap = HuffmanTree.buildFrequencyMap(text);
-        Node root = HuffmanTree.buildHuffmanTree(freqMap);
-        Map<Character, String> huffmanCodes = HuffmanTree.buildCodeTable(root);
+    public void encode(String input, String output) throws IOException {
+        FileInputStream fileIn = new FileInputStream(input);
+        FileOutputStream fileOut = new FileOutputStream(output, false);
 
-        // Кодирование текста
-        StringBuilder encodedText = new StringBuilder();
-        for (char ch : text.toCharArray()) {
-            encodedText.append(huffmanCodes.get(ch));
-        }
+        HashMap<Byte, Integer> counter = readStatistic(fileIn);
+        HuffmanTree tree = new HuffmanTree(counter);
 
-        // Сохранение закодированных данных в файл
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(outputFile))) {
-            oos.writeObject(freqMap); // Сохраняем частоты для декодирования
-            oos.writeObject(encodedText.toString());
-        }
+        HuffmanHeader head = new HuffmanHeader();
+        head.extension = this.getExtension(output);
+        head.table = tree.getTable();
+        head.calculateTablePtr();
+        head.calculateDataPtr();
+        head.calculateDataSize(counter);
+        head.write(fileOut);
 
-        System.out.println("Файл успешно закодирован и сохранен в " + outputFile);
+        fileIn.close();
+        fileIn = new FileInputStream(input);
+        this.writeData(fileIn, fileOut, head.table);
+
+        fileIn.close();
+        fileOut.close();
     }
 
-    // Чтение файла и возврат его содержимого в виде строки
-    private static String readFile(String filename) throws IOException {
-        StringBuilder sb = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
-            int ch;
-            while ((ch = reader.read()) != -1) {
-                sb.append((char) ch);
+    private HashMap<Byte, Integer> readStatistic(FileInputStream fis) throws IOException {
+        HashMap<Byte, Integer> map = new HashMap<>();
+        int byteRead;
+        while ((byteRead = fis.read()) != -1) {
+            byte b = (byte) byteRead;
+            map.put(b, map.getOrDefault(b, 0) + 1);
+        }
+        return map;
+    }
+
+    private String getExtension(String fileName) {
+        int i = fileName.lastIndexOf('.');
+        return (i > 0) ? fileName.substring(i) : "";
+    }
+
+    private void writeData(FileInputStream fis, FileOutputStream fos, HashMap<Byte, String> table) throws IOException {
+        StringBuilder data = new StringBuilder();
+        int byteRead;
+        while ((byteRead = fis.read()) != -1) {
+            byte b = (byte) byteRead;
+            data.append(table.get(b));
+
+            // Записываем полные байты
+            while (data.length() >= 8) {
+                String byteString = data.substring(0, 8);
+                data.delete(0, 8);
+                writeBits(fos, byteString);
             }
         }
-        return sb.toString();
+
+        // Записываем оставшиеся биты, дополняя нулями до полного байта
+        if (data.length() > 0) {
+            while (data.length() < 8) {
+                data.append('0');
+            }
+            writeBits(fos, data.toString());
+        }
+    }
+
+    private void writeBits(FileOutputStream fos, String byteString) throws IOException {
+        byte tmp = 0;
+        for (int i = 0; i < 8; i++) {
+            tmp = (byte) ((tmp << 1) | (byteString.charAt(i) - '0'));
+        }
+        fos.write(tmp);
     }
 }
