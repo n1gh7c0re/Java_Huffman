@@ -51,10 +51,10 @@ public class HuffmanHeader {
         for (Map.Entry<Byte, String> entry : table.entrySet()) {
             buffer[count++] = entry.getKey();
             buffer[count++] = (byte) entry.getValue().length();
-
             byte[] value = this.stringToBytes(entry.getValue());
-            for (int i = 0; i < value.length; i++)
-                buffer[count++] = value[i];
+            for (int j = 0; j < value.length; j++) {
+                buffer[count++] = value[j];
+            }
         }
 
         fos.write(buffer, 0, count);
@@ -136,15 +136,14 @@ public class HuffmanHeader {
 
     private byte[] stringToBytes(String str) {
         byte[] arr = new byte[(str.length() + 7) / 8];
-
         for (int i = 0; i < str.length(); i += 8) {
             byte tmp = 0;
-            for (int j = 0; j < 8; j++)
+            for (int j = 0; j < 8; j++) {
                 tmp = (byte) ((tmp << 1) |
                         ((i + j < str.length()) ? str.charAt(i + j) - '0' : 0));
+            }
             arr[i / 8] = tmp;
         }
-
         return arr;
     }
 

@@ -6,13 +6,13 @@ import java.util.HashMap;
 public class Encoder {
     public void encode(String input, String output) throws IOException {
         FileInputStream fileIn = new FileInputStream(input);
-        FileOutputStream fileOut = new FileOutputStream(output, false);
+        FileOutputStream fileOut = new FileOutputStream(output);
 
         HashMap<Byte, Integer> counter = readStatistic(fileIn);
         HuffmanTree tree = new HuffmanTree(counter);
 
         HuffmanHeader head = new HuffmanHeader();
-        head.extension = this.getExtension(output);
+        head.extension = getExtension(output);
         head.table = tree.getTable();
         head.calculateTablePtr();
         head.calculateDataPtr();
@@ -21,7 +21,7 @@ public class Encoder {
 
         fileIn.close();
         fileIn = new FileInputStream(input);
-        this.writeData(fileIn, fileOut, head.table);
+        writeData(fileIn, fileOut, head.table);
 
         fileIn.close();
         fileOut.close();
@@ -39,7 +39,7 @@ public class Encoder {
 
     private String getExtension(String fileName) {
         int i = fileName.lastIndexOf('.');
-        return (i > 0) ? fileName.substring(i) : "";
+        return (i > 0) ? fileName.substring(i + 1) : "";
     }
 
     private void writeData(FileInputStream fis, FileOutputStream fos, HashMap<Byte, String> table) throws IOException {
@@ -67,6 +67,10 @@ public class Encoder {
     }
 
     private void writeBits(FileOutputStream fos, String byteString) throws IOException {
+        if (byteString.length() == 0) return;
+        while (byteString.length() < 8) {
+            byteString += '0';
+        }
         byte tmp = 0;
         for (int i = 0; i < 8; i++) {
             tmp = (byte) ((tmp << 1) | (byteString.charAt(i) - '0'));
